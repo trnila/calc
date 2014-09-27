@@ -4,13 +4,15 @@
 #include <stdlib.h>
 #include <math.h>
 
+typedef enum {false, true} bool;
+
 typedef struct node {
 	int num;
 	struct node *prev;
 } List;
 
 void write(List** list, int num) {
-	List *dst = (List*) malloc(sizeof(node));
+	List *dst = (List*) malloc(sizeof(List));
 	dst->num = num;
 	dst->prev = *list;
 
