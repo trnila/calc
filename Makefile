@@ -1,10 +1,11 @@
-CFLAGS = -lm -std=c11
+CFLAGS = -lm -std=c99
+CC = gcc
 
 calc: calc.o
-	gcc $(CFLAGS) -o $@ $<
+	$(CC) -o $@ $< $(CFLAGS)
 
 calc.o: calc.c
-	gcc $(CFLAGS) -c -o $@ $<
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 .PHONY: clean
 
