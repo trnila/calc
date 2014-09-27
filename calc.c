@@ -5,6 +5,7 @@
 #include <math.h>
 
 typedef enum {false, true} bool;
+typedef enum {NOTHING, OPERATOR, OPERAND} Token;
 
 typedef struct node {
 	int num;
@@ -123,14 +124,17 @@ int calculate(const char *in) {
 }
 
 
+
 void convert(const char in[], char *result) {
 	List *ops = NULL;
 	int r = 0;
+	Token last = NOTHING;
 
 	for(size_t i = 0, size = strlen(in); i < size; i++) {
 		// if is number, push it to output
 		if(in[i] >= '0' && in[i] <= '9') {
 			result[r++] = in[i];
+			last = OPERAND;
 		} else {
 			switch(in[i]) {
 				// if its operator, push it to stack
@@ -151,11 +155,18 @@ void convert(const char in[], char *result) {
 					result[r++] = ' ';
 					write(&ops, in[i]);
 
+					last = OPERATOR;
 					break;
 				}
 
 				// push starting bracket to stack
 				case '(': {
+					// support for a(a+b) = a*(a+b) notation
+					if(last == OPERAND) {
+						write(&ops, '*');
+						result[r++] = ' ';
+					}
+
 					write(&ops, in[i]);
 
 					break;
@@ -235,10 +246,14 @@ int main() {
 	test(5, "3 * 4 * 5", "3 4 * 5 *", 60);
 	test(6, "3 * 4 - 5", "3 4 * 5 -", 7);
 	test(7, "3 - 4 * 5", "3 4 5 * -", -17);
-	test(7, "40 / 4 + 5", "40 4 / 5 +", 15);
-	test(8, "(3 - 4) * 5", "3 4 - 5 *", -5);
-	test(9, "(4 * 6 + 2) + ((45 + 2) / 21)", "4 6 * 2 + 45 2 + 21 / +", 28);
-	test(10, "(4*6+2)+((45+2)/21)", "4 6 * 2 + 45 2 + 21 / +", 28);
+	test(8, "40 / 4 + 5", "40 4 / 5 +", 15);
+	test(9, "(3 - 4) * 5", "3 4 - 5 *", -5);
+	test(10, "(4 * 6 + 2) + ((45 + 2) / 21)", "4 6 * 2 + 45 2 + 21 / +", 28);
+	test(11, "(4*6+2)+((45+2)/21)", "4 6 * 2 + 45 2 + 21 / +", 28);
+
+	// a(b+c) notation
+	test(12, "2 + 3(12+4)", "2 3 12 4 + * +", 50);
+	test(13, "2 + 3 + (12+4)", "2 3 12 4 + + +", 21);
 
 	return status;
 }
