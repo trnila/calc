@@ -193,18 +193,22 @@ void convert(const char in[], char *result) {
 #define RED "\033[22;31m"
 #define CLR "\033[0m"
 
+bool status = 0;
+
 void test(int test, const char in[], const char polishTemplate[], int resultTemplate) {
 	char polish[255];
 	convert(in, polish);
 
 	if(strcmp(polish, polishTemplate) != 0) {
 		printf(RED "[%d] '%s' != '%s'\n" CLR, test, polish, polishTemplate);
+		status = 1;
 		return;
 	}
 
 	int result = calculate(polish);
 	if(result != resultTemplate) {
 		printf(RED "[%d] '%s' != '%s'; %d != %d\n" CLR, test, in, polishTemplate, resultTemplate, result);
+		status = 1;
 		return;
 	}
 
@@ -228,24 +232,6 @@ int main() {
 	test(9, "(4 * 6 + 2) + ((45 + 2) / 21)", "4 6 * 2 + 45 2 + 21 / +", 28);
 	test(10, "(4*6+2)+((45+2)/21)", "4 6 * 2 + 45 2 + 21 / +", 28);
 
-	/*char in[] = "3 + 4 * 8";
-	char result[255];
-	convert(in, result);
-
-	printf("%s", result);
-
-	printf("RESULT: %d\n", calculate(result));*/
-
-	return 1;
-
-
-
-
-
-
-	//printf("RESULT: %d\n", calculate((char*)"3 5 + 7 2 - *"));
-	//printf("RESULT: %d\n", calculate((char*)"3 5 * 45 + "));
-
-
+	return status;
 }
 
