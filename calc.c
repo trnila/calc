@@ -127,52 +127,74 @@ void convert(const char in[], char *result) {
 	List *ops = NULL;
 	int r = 0;
 
-	for(size_t i = 0; i < strlen(in); i++) {
+	for(size_t i = 0, size = strlen(in); i < size; i++) {
+		// if is number, push it to output
 		if(in[i] >= '0' && in[i] <= '9') {
 			result[r++] = in[i];
-		}
+		} else {
+			switch(in[i]) {
+				// if its operator, push it to stack
+				case '+':
+				case '-':
+				case '*':
+				case '/': {
+					// if previous operator is * or / - pop him from stack, because it has high priority
+					if(ops && (ops->num == '*' || ops->num == '/')) {
+						if(r > 1 && result[r - 1] != ' ') {
+							result[r++] = ' ';
+						}
+						result[r++] = ops->num;
 
-		if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
-			if(ops && (ops->num == '*' || ops->num == '/')) {
-				if(r > 1 && result[r - 1] != ' ') {
+						read(&ops, NULL); // pop from queue
+					}
+
 					result[r++] = ' ';
-				}
-				result[r++] = ops->num;
+					write(&ops, in[i]);
 
-				read(&ops, NULL); // pop from queue
-			}
-
-			result[r++] = ' ';
-			write(&ops, in[i]);
-		}
-
-		if(in[i] == '(') {
-			write(&ops, in[i]);
-		}
-
-		if(in[i] == ')') {
-			int op;
-			bool openBracket = false;
-
-			while(read(&ops, &op)) {
-				if(op == '(') {
-					openBracket = true;
 					break;
 				}
 
-				result[r++] = ' ';
-				result[r++] = op;
+				// push starting bracket to stack
+				case '(': {
+					write(&ops, in[i]);
+
+					break;
+				}
+
+				// pop until '(' is found in stack
+				case ')': {
+					int op;
+					bool openBracket = false;
+
+					while(read(&ops, &op)) {
+						if(op == '(') {
+							openBracket = true;
+							break;
+						}
+
+						result[r++] = ' ';
+						result[r++] = op;
+					}
+
+					if(!openBracket) {
+						printf("No open bracket found!");
+						return;
+					}
+
+					break;
+				}
 			}
 		}
 	}
 
+	// pop all remaining operators from stack and put them to output
 	int op;
 	while(read(&ops, &op)) {
 		result[r++] = ' ';
 		result[r++] = op;
 	}
 
-	result[r] = 0;
+	result[r] = '\0';
 }
 
 #define GREEN "\033[22;32m"
