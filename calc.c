@@ -132,21 +132,7 @@ void convert(const char in[], char *result) {
 			result[r++] = in[i];
 		}
 
-		if(in[i] == '+' || in[i] == '-') {
-			if(ops && (ops->num == '*' || ops->num == '/')) {
-				if(r > 1 && result[r - 1] != ' ') {
-					result[r++] = ' ';
-				}
-				result[r++] = ops->num;
-
-				read(&ops, NULL); // pop from queue
-			}
-
-			result[r++] = ' ';
-			write(&ops, in[i]);
-		}
-
-		if(in[i] == '*' || in[i] == '/') {
+		if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
 			if(ops && (ops->num == '*' || ops->num == '/')) {
 				if(r > 1 && result[r - 1] != ' ') {
 					result[r++] = ' ';
