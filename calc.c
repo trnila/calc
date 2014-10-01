@@ -52,16 +52,25 @@ void destroy(List **list) {
 }
 
 bool isEmpty(List **list) {
-	return list != NULL;
+	return *list == NULL;
 }
 
 int strToInt(const char* str, size_t len) {
 	int result = 0;
-	for(size_t i = 0; i < len; i++) {
+	for(size_t i = str[0] == '-'; i < len; i++) {
 		result += (str[i] - '0') * pow(10, len - i - 1);
 	}
 
+	// if first character is minus, negate number
+	if(str[0] == '-') {
+		result *= -1;
+	}
+
 	return result;
+}
+
+bool isNumber(char in) {
+	return in >= '0' && in < '9';
 }
 
 int calculate(const char *in) {
@@ -69,20 +78,17 @@ int calculate(const char *in) {
 
 	int start = -1;
 	for(size_t i = 0, len = strlen(in); i < len; i++) {
-		if(in[i] >= '0' && in[i] <= '9') {
+		// is number or minus following a letter
+		if(isNumber(in[i]) || (in[i] == '-' && (i + 1) < len && isNumber(in[i+1]))) {
 			if(start == -1) {
 				start = i;
 			}
-		} else {
-			if(start >= 0) {
+		} else if(start >= 0) {
 				int num = strToInt(in + start, i - start);
 				start = -1;
 
 				write(&nums, num);
-			}
-		}
-
-		if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
+		} else if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
 			int a, b, result;
 			if(!read(&nums, &b)) {
 				printf("Number B missing!");
@@ -117,7 +123,9 @@ int calculate(const char *in) {
 	read(&nums, &result);
 
 	if(!isEmpty(&nums)) {
-		printf("Stack not empty!");
+		printf("Stack not empty!\n");
+		print(&nums);
+		return -55;
 	}
 
 	return result;
@@ -132,7 +140,7 @@ void convert(const char in[], char *result) {
 
 	for(size_t i = 0, size = strlen(in); i < size; i++) {
 		// if is number, push it to output
-		if(in[i] >= '0' && in[i] <= '9') {
+		if(isNumber(in[i]) || (last == NOTHING && in[i] == '-')) {
 			result[r++] = in[i];
 			last = OPERAND;
 		} else {
@@ -142,8 +150,8 @@ void convert(const char in[], char *result) {
 				case '-':
 				case '*':
 				case '/': {
-					// if previous operator is * or / - pop him from stack, because it has high priority
-					if(ops && (ops->num == '*' || ops->num == '/')) {
+					// pop operators from stack when they have higher priority then actual operator
+					while(ops && ((ops->num == '*' || ops->num == '/') || ((in[i] == '+' || in[i] == '-') && (ops->num == '+' || ops->num == '-')))) {
 						if(r > 1 && result[r - 1] != ' ') {
 							result[r++] = ' ';
 						}
@@ -168,6 +176,8 @@ void convert(const char in[], char *result) {
 					}
 
 					write(&ops, in[i]);
+
+					last = NOTHING;
 
 					break;
 				}
@@ -219,20 +229,30 @@ void test(int test, const char in[], const char polishTemplate[], int resultTemp
 	convert(in, polish);
 
 	if(strcmp(polish, polishTemplate) != 0) {
-		printf(RED "[%d] '%s' != '%s'\n" CLR, test, polish, polishTemplate);
+		printf(RED "[%2d]\n", test);
+		printf("\tInput:\t\t%s\n", in);
+		printf("\tExpected:\t%s\n", polishTemplate);
+		printf("\tReceived:\t%s\n", polish);
+		printf(CLR);
 		status = 1;
 		return;
 	}
 
 	int result = calculate(polish);
 	if(result != resultTemplate) {
-		printf(RED "[%d] '%s' != '%s'; %d != %d\n" CLR, test, in, polishTemplate, resultTemplate, result);
+		printf(RED "[%2d]\n", test);
+		printf("\tInput:\t\t%s\n", in);
+		printf("\tConverted:\t%s\n", resultTemplate);
+		printf("\tExpected:\t%d\n", resultTemplate);
+		printf("\tReceived:\t%d\n", result);
+		printf(CLR);
+
 		status = 1;
 		return;
 	}
 
 
-	printf(GREEN "[%d] Passed '%s' = '%s' = %d\n" CLR, test, in, polish, resultTemplate);
+	printf(GREEN "[%2d] Passed '%s' = '%s' = %d\n" CLR, test, in, polish, resultTemplate);
 
 
 }
@@ -240,7 +260,7 @@ void test(int test, const char in[], const char polishTemplate[], int resultTemp
 
 int main() {
 	test(1, "3 + 4", "3 4 +", 7);
-	test(2, "3 + 4 + 5", "3 4 5 + +", 12);
+	test(2, "3 + 4 + 5", "3 4 + 5 +", 12);
 	test(3, "3 * 4 + 5", "3 4 * 5 +", 17);
 	test(4, "3 + 4 * 5", "3 4 5 * +", 23);
 	test(5, "3 * 4 * 5", "3 4 * 5 *", 60);
@@ -253,7 +273,14 @@ int main() {
 
 	// a(b+c) notation
 	test(12, "2 + 3(12+4)", "2 3 12 4 + * +", 50);
-	test(13, "2 + 3 + (12+4)", "2 3 12 4 + + +", 21);
+	test(13, "2 + 3 + (12+4)", "2 3 + 12 4 + +", 21);
+
+	// negative numbers
+	test(14, "-2 + 3", "-2 3 +", 1);
+	test(15, "-2*(-2)", "-2 -2 *", 4);
+	test(16, "-2 + 3(-4+8)", "-2 3 -4 8 + * +", 10);
+	test(17, "-2 - 3(-4-8)", "-2 3 -4 8 - * -", 34);
+	test(18, "-2 - 3(-4-8) - 5(-2 - 3)", "-2 3 -4 8 - * - 5 -2 3 - * -", 59);
 
 	return status;
 }
