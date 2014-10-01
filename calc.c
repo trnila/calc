@@ -77,7 +77,9 @@ int calculate(const char *in) {
 	List* nums = NULL;
 
 	int start = -1;
-	for(size_t i = 0, len = strlen(in); i < len; i++) {
+
+	// on strlen + 1 is '\0' which can take care of input like "5"
+	for(size_t i = 0, len = strlen(in) + 1; i < len; i++) {
 		// is number or minus following a letter
 		if(isNumber(in[i]) || (in[i] == '-' && (i + 1) < len && isNumber(in[i+1]))) {
 			if(start == -1) {
@@ -119,7 +121,7 @@ int calculate(const char *in) {
 		}
 	}
 
-	int result;
+	int result = 0;
 	read(&nums, &result);
 
 	if(!isEmpty(&nums)) {
@@ -242,7 +244,7 @@ void test(int test, const char in[], const char polishTemplate[], int resultTemp
 	if(result != resultTemplate) {
 		printf(RED "[%2d]\n", test);
 		printf("\tInput:\t\t%s\n", in);
-		printf("\tConverted:\t%s\n", resultTemplate);
+		printf("\tConverted:\t%s\n", polish);
 		printf("\tExpected:\t%d\n", resultTemplate);
 		printf("\tReceived:\t%d\n", result);
 		printf(CLR);
@@ -281,6 +283,13 @@ int main() {
 	test(16, "-2 + 3(-4+8)", "-2 3 -4 8 + * +", 10);
 	test(17, "-2 - 3(-4-8)", "-2 3 -4 8 - * -", 34);
 	test(18, "-2 - 3(-4-8) - 5(-2 - 3)", "-2 3 -4 8 - * - 5 -2 3 - * -", 59);
+
+	// should be valid
+	test(19, "", "", 0);
+	test(19, "0", "0", 0);
+	test(20, "5", "5", 5);
+	test(21, "-5", "-5", -5);
+	test(22, "123", "123", 123);
 
 	return status;
 }
