@@ -6,6 +6,10 @@
 
 typedef enum {false, true} bool;
 typedef enum {NOTHING, OPERATOR, OPERAND} Token;
+typedef struct {
+	enum {UNEXPECTED_CHAR, MISSING_NUMBER, MISSING_END_BRACKET} code;
+	size_t position;
+} Error;
 
 typedef struct node {
 	int num;
@@ -73,7 +77,7 @@ bool isNumber(char in) {
 	return in >= '0' && in < '9';
 }
 
-int calculate(const char *in) {
+bool calculate(const char *in, int *result, Error* error) {
 	List* nums = NULL;
 
 	int start = -1;
@@ -92,14 +96,13 @@ int calculate(const char *in) {
 				write(&nums, num);
 		} else if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
 			int a, b, result;
-			if(!read(&nums, &b)) {
-				printf("Number B missing!");
-				return 0;
-			}
+			if(!read(&nums, &b) || !read(&nums, &a)) {
+				if(error) {
+					error->code = MISSING_NUMBER;
+					error->position = i-1;
+				}
 
-			if(!read(&nums, &a)) {
-				printf("Number A missing!");
-				return 0;
+				return false;
 			}
 
 			switch(in[i]) {
@@ -121,21 +124,21 @@ int calculate(const char *in) {
 		}
 	}
 
-	int result = 0;
-	read(&nums, &result);
+	*result = 0;
+	read(&nums, result);
 
 	if(!isEmpty(&nums)) {
 		printf("Stack not empty!\n");
 		print(&nums);
-		return -55;
+		return false;
 	}
 
-	return result;
+	return true;
 }
 
 
 
-void convert(const char in[], char *result) {
+bool convert(const char in[], char *result, Error *error) {
 	List *ops = NULL;
 	int r = 0;
 	Token last = NOTHING;
@@ -187,11 +190,9 @@ void convert(const char in[], char *result) {
 				// pop until '(' is found in stack
 				case ')': {
 					int op;
-					bool openBracket = false;
 
 					while(read(&ops, &op)) {
 						if(op == '(') {
-							openBracket = true;
 							break;
 						}
 
@@ -199,12 +200,19 @@ void convert(const char in[], char *result) {
 						result[r++] = op;
 					}
 
-					if(!openBracket) {
-						printf("No open bracket found!");
-						return;
-					}
+					break;
+				}
+
+				// space character is allowed - just do nothing
+				case ' ': {
 
 					break;
+				}
+
+				default: {
+					error->code = UNEXPECTED_CHAR;
+					error->position = i;
+					return false;
 				}
 			}
 		}
@@ -213,6 +221,13 @@ void convert(const char in[], char *result) {
 	// pop all remaining operators from stack and put them to output
 	int op;
 	while(read(&ops, &op)) {
+		if(op == '(') {
+			error->code = MISSING_END_BRACKET;
+			error->position = strstr(in, "(") - in;
+
+			return false;
+		}
+
 		result[r++] = ' ';
 		result[r++] = op;
 	}
@@ -224,41 +239,125 @@ void convert(const char in[], char *result) {
 #define RED "\033[22;31m"
 #define CLR "\033[0m"
 
-bool status = 0;
+bool failedTests = 0;
+
+
+void e(Error *error, const char* str) {
+	printf("'%s'\n", str);
+	for(int i = 0; i <= error->position; i++) {
+		printf(" ");
+	}
+	printf("└────── ");
+	if(error->code == MISSING_NUMBER) {
+		printf("Missing number");
+	} else if(error->code == MISSING_END_BRACKET) {
+		printf("Missing ending bracket");
+	} else if(error->code == UNEXPECTED_CHAR) {
+		printf("Unexpected character: '%c' (%d)", str[error->position], str[error->position]);
+	} else {
+		printf("Unknown error");
+	}
+	printf("\n");
+}
+
+void testError(int test, const char in[], int code, int position, int which) {
+	char polish[255];
+	Error error;
+	int success;
+
+	success = convert(in, polish, &error);
+	if(which == 2) {
+		if(!success) {
+			printf(RED "[%2d] failed - received unexpected error %d in RPN conversion\n", test, code);
+			e(&error, polish);
+			failedTests++;
+			return;
+		}
+
+		success = calculate(polish, NULL, &error);
+	}
+
+	if(!success) {
+		if(error.code != code) {
+			printf(RED "[%2d] failed - received error %d instead of %d\n", test, error.code, code);
+			e(&error, in);
+			failedTests++;
+			return;
+		}
+
+		if(error.position != position) {
+			printf(RED "[%2d] failed - received position %d instead of %d\n", test, error.position, position);
+			e(&error, in);
+			failedTests++;
+			return;
+		}
+		printf(GREEN "[%2d] Passed - received error\n", test);
+	} else {
+		printf(RED "[%2d] failed - error %d not received\n", test, code);
+		failedTests++;
+		return;
+	}
+}
 
 void test(int test, const char in[], const char polishTemplate[], int resultTemplate) {
 	char polish[255];
-	convert(in, polish);
+	Error error;
 
-	if(strcmp(polish, polishTemplate) != 0) {
-		printf(RED "[%2d]\n", test);
-		printf("\tInput:\t\t%s\n", in);
-		printf("\tExpected:\t%s\n", polishTemplate);
-		printf("\tReceived:\t%s\n", polish);
-		printf(CLR);
-		status = 1;
+	// check parse error
+	if(!convert(in, polish, &error)) {
+		printf(RED "[%2d] converting to RPN returned error\n", test);
+		printf("Input:\t\t%s\n", in);
+		printf("Expected:\t%s\n", polishTemplate);
+		printf("Received:\t%s\n", polish);
+		e(&error, in);
+		printf("\n" CLR);
+		failedTests++;
 		return;
 	}
 
-	int result = calculate(polish);
+	// check if in required format
+	if(strcmp(polish, polishTemplate) != 0) {
+		printf(RED "[%2d] converted is not same as expected RPN\n", test);
+		printf("\tInput:\t\t%s\n", in);
+		printf("\tExpected:\t%s\n", polishTemplate);
+		printf("\tReceived:\t%s\n", polish);
+
+		printf("\n" CLR);
+		failedTests++;
+		return;
+	}
+
+	int result;
+
+	// check if error
+	if(!calculate(polish, &result, &error)) {
+		printf(RED "[%2d] calculating returned error\n", test);
+		printf("\tInput:\t\t%s\n", in);
+		printf("\tConverted:\t%s\n", polish);
+
+		e(&error, polish);
+
+
+		printf("\n" CLR);
+
+		failedTests++;
+		return;
+	}
+
 	if(result != resultTemplate) {
 		printf(RED "[%2d]\n", test);
 		printf("\tInput:\t\t%s\n", in);
 		printf("\tConverted:\t%s\n", polish);
 		printf("\tExpected:\t%d\n", resultTemplate);
 		printf("\tReceived:\t%d\n", result);
-		printf(CLR);
+		printf("\n" CLR);
 
-		status = 1;
+		failedTests++;
 		return;
 	}
 
-
 	printf(GREEN "[%2d] Passed '%s' = '%s' = %d\n" CLR, test, in, polish, resultTemplate);
-
-
 }
-
 
 int main() {
 	test(1, "3 + 4", "3 4 +", 7);
@@ -291,6 +390,21 @@ int main() {
 	test(21, "-5", "-5", -5);
 	test(22, "123", "123", 123);
 
-	return status;
+	// some invalid inputs
+	testError(23, "abc", UNEXPECTED_CHAR, 0, 1);
+	testError(24, "3+", MISSING_NUMBER, 2, 2);
+	testError(25, "+", MISSING_NUMBER, 1, 2);
+	testError(26, "4(7", MISSING_END_BRACKET, 1, 1);
+	testError(27, "4(7+", MISSING_END_BRACKET, 1, 1);
+	testError(28, "4 + 2 - 4(7+", MISSING_END_BRACKET, 9, 1);
+
+	printf("\n");
+	if(failedTests > 0) {
+		printf(RED "%d test%s failed\n" CLR, failedTests, failedTests > 1 ? "s" : "");
+	} else {
+		printf(GREEN "All tests passed!\n" CLR);
+	}
+
+	return failedTests > 0;
 }
 
