@@ -90,7 +90,7 @@ void test(int test, const char in[], const char polishTemplate[], double resultT
 		return;
 	}
 
-	if(fabs(result - resultTemplate) > 0.000001) {
+	if(fabs(result - resultTemplate) > 0.000001 || (isnan(result) && !isnan(resultTemplate))) {
 		printf(RED "[%2d]\n", test);
 		printf("\tInput:\t\t%s\n", in);
 		printf("\tConverted:\t%s\n", polish);
@@ -165,6 +165,17 @@ int main() {
 	test(41, "(5-3*1)^(2*2+0)", "5 3 1 * - 2 2 * 0 + ^", 16);
 	test(42, "2^sqrt(4)", "2 4 sqrt ^", 4);
 	test(43, "sqrt(8^2)", "8 2 ^ sqrt", 8);
+
+	// trigonometric functions
+	test(44, "sin(0)", "0 sin", 0);
+	test(45, "sin(90)", "90 sin", 1);
+	test(46, "cos(0)", "0 cos", 1);
+	test(47, "tg(0)", "0 tg", 0);
+	test(48, "cotg(90)", "90 cotg", 0);
+	test(49, "cotg(0)", "0 cotg", NAN);
+	test(50, "sin(90)^2 + cos(90)^2", "90 sin 2 ^ 90 cos + 2 ^", 1);
+	test(51, "sin(90)^2 + cos(90)^2 + 5", "90 sin 2 ^ 90 cos + 2 ^ 5 +", 6);
+
 
 	printf("\n");
 	if(failedTests > 0) {

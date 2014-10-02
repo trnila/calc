@@ -5,8 +5,10 @@
 #include <math.h>
 #include "calc.h"
 
+#define M_PI 3.14159265358979323846264338327
+
 typedef enum {NOTHING, OPERATOR, OPERAND} Token;
-typedef enum {OP_PLUS = '+', OP_MINUS = '-', OP_MULTIPLY = '*', OP_DIVISION = '/', OP_POW = '^', OP_SQRT = 0} Operator;
+typedef enum {OP_PLUS = '+', OP_MINUS = '-', OP_MULTIPLY = '*', OP_DIVISION = '/', OP_POW = '^', OP_SQRT = 0, OP_SIN = 1, OP_COS = 2, OP_TG = 3, OP_COTG = 4} Operator;
 
 typedef struct node {
 	double num;
@@ -86,6 +88,8 @@ bool isNumber(char in) {
 	return (in >= '0' && in <= '9') || in == '.';
 }
 
+#define isMathFunction(type) strncmp(type, in + i, strlen(type)) == 0
+
 bool calculate(const char *in, double *result, Error* error) {
 	List* nums = NULL;
 
@@ -135,8 +139,8 @@ bool calculate(const char *in, double *result, Error* error) {
 
 			writeList(&nums, result);
 		} else {
-			if(strncmp("sqrt", in + i, strlen("sqrt")) == 0) {
-				double a;
+			if(isMathFunction("sqrt") || isMathFunction("sin") || isMathFunction("cos") || isMathFunction("tg") || isMathFunction("cotg")) {
+				double a, result;
 				if(!readList(&nums, &a)) {
 					if(error) {
 						error->code = MISSING_NUMBER;
@@ -147,7 +151,19 @@ bool calculate(const char *in, double *result, Error* error) {
 					return false;
 				}
 
-				writeList(&nums, sqrt(a));
+				if(isMathFunction("sqrt")) {
+					result = sqrt(a);
+				} else if(isMathFunction("sin")) {
+					result = sin(a * M_PI / 180);
+				} else if(isMathFunction("cos")) {
+					result = cos(a * M_PI / 180);
+				} else if(isMathFunction("tg")) {
+					result = tan(a * M_PI / 180);
+				} else if(isMathFunction("cotg")) {
+					result = 1 / tan(a * M_PI / 180);
+				}
+
+				writeList(&nums, result);
 
 			}
 		}
@@ -170,9 +186,9 @@ bool calculate(const char *in, double *result, Error* error) {
 }
 
 bool hasBiggerPriority(char op1, char op2) {
-	//if(op1 == OP_SQRT && (op2 != OP_PLUS || op2 != OP_MINUS)) {
-	//	return true;
-	//}
+	if(op1 == OP_POW) {
+		return true;
+	}
 
 	if(op1 == OP_DIVISION || op1 == OP_MULTIPLY) {
 		return true;
@@ -210,6 +226,22 @@ void writeOperator(Operator op, char* result, int *r) {
 		case OP_SQRT:
 			strcpy(result, "sqrt");
 			*r += strlen("sqrt");
+			break;
+		case OP_SIN:
+			strcpy(result, "sin");
+			*r += strlen("sin");
+			break;
+		case OP_COS:
+			strcpy(result, "cos");
+			*r += strlen("cos");
+			break;
+		case OP_TG:
+			strcpy(result, "tg");
+			*r += strlen("tg");
+			break;
+		case OP_COTG:
+			strcpy(result, "cotg");
+			*r += strlen("cotg");
 			break;
 		default:
 			strcpy(result, "UNKNOWN");
@@ -297,6 +329,18 @@ bool convert(const char in[], char *result, Error *error) {
 						i += strlen("sqrt");
 
 						writeList(&ops, OP_SQRT);
+					} else if(strncmp("sin", in + i, strlen("sin")) == 0) {
+						i += strlen("sin");
+						writeList(&ops, OP_SIN);
+					} else if(strncmp("cos", in + i, strlen("cos")) == 0) {
+						i += strlen("cos");
+						writeList(&ops, OP_COS);
+					} else if(strncmp("tg", in + i, strlen("tg")) == 0) {
+						i += strlen("tg");
+						writeList(&ops, OP_TG);
+					} else if(strncmp("cotg", in + i, strlen("cotg")) == 0) {
+						i += strlen("cotg");
+						writeList(&ops, OP_COTG);
 					} else {
 						error->code = UNEXPECTED_CHAR;
 						error->position = i;
