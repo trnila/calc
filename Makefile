@@ -1,13 +1,16 @@
 CFLAGS = -lm -std=c99
 CC = gcc
+BIN = ./bin
+SOURCE = ./src
 
-calc: calc.o
+$(BIN)/calc: $(BIN)/calc.o
 	$(CC) -o $@ $< $(CFLAGS)
 
-calc.o: calc.c
+$(BIN)/calc.o: $(SOURCE)/calc.c
+	mkdir -p $(BIN)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 .PHONY: clean
 
 clean:
-	rm -f calc calc.o
+	rm -f $(BIN)/calc $(BIN)/*.o
