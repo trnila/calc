@@ -1,5 +1,5 @@
 language: c
 compiler:
   - gcc
-script: make && ./bin/calc
+script: make && make test
 
