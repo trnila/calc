@@ -6,13 +6,13 @@ SOURCE = ./src
 all: prepare $(BIN)/tests $(BIN)/cli
 
 $(BIN)/tests: $(BIN)/tests.o $(BIN)/calc.o
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -g -o $@ $^ $(CFLAGS)
 
 $(BIN)/cli: $(BIN)/cli.o $(BIN)/calc.o
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -g -o $@ $^ $(CFLAGS) -lreadline
 
 $(BIN)/%.o: $(SOURCE)/%.c
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -g -c -o $@ $< $(CFLAGS)
 
 .PHONY: clean prepare
 
