@@ -12,7 +12,7 @@ typedef struct node {
 	struct node *prev;
 } List;
 
-void write(List** list, double num) {
+void writeList(List** list, double num) {
 	List *dst = (List*) malloc(sizeof(List));
 	dst->num = num;
 	dst->prev = *list;
@@ -20,7 +20,7 @@ void write(List** list, double num) {
 	*list = dst;
 }
 
-bool read(List** list, double *result) {
+bool readList(List** list, double *result) {
 	if(*list) {
 		List *dst = *list;
 
@@ -38,7 +38,7 @@ bool read(List** list, double *result) {
 	return 0;
 }
 
-void print(List **list) {
+void printList(List **list) {
 	List *l = *list;
 	while(l) {
 		printf("%f ", l->num);
@@ -47,11 +47,11 @@ void print(List **list) {
 	printf("\n");
 }
 
-void destroy(List **list) {
-	while(read(list, NULL)){}
+void destroyList(List **list) {
+	while(readList(list, NULL)){}
 }
 
-bool isEmpty(List **list) {
+bool isEmptyList(List **list) {
 	return *list == NULL;
 }
 
@@ -102,10 +102,10 @@ bool calculate(const char *in, double *result, Error* error) {
 				double num = strToInt(in + start, i - start);
 				start = -1;
 
-				write(&nums, num);
+				writeList(&nums, num);
 		} else if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
 			double a, b, result;
-			if(!read(&nums, &b) || !read(&nums, &a)) {
+			if(!readList(&nums, &b) || !readList(&nums, &a)) {
 				if(error) {
 					error->code = MISSING_NUMBER;
 					error->position = i-1;
@@ -129,16 +129,16 @@ bool calculate(const char *in, double *result, Error* error) {
 					break;
 			}
 
-			write(&nums, result);
+			writeList(&nums, result);
 		}
 	}
 
 	*result = 0;
-	read(&nums, result);
+	readList(&nums, result);
 
-	if(!isEmpty(&nums)) {
+	if(!isEmptyList(&nums)) {
 		printf("Stack not empty!\n");
-		print(&nums);
+		printList(&nums);
 		return false;
 	}
 
@@ -171,11 +171,11 @@ bool convert(const char in[], char *result, Error *error) {
 						}
 						result[r++] = ops->num;
 
-						read(&ops, NULL); // pop from queue
+						readList(&ops, NULL); // pop from queue
 					}
 
 					result[r++] = ' ';
-					write(&ops, in[i]);
+					writeList(&ops, in[i]);
 
 					last = OPERATOR;
 					break;
@@ -185,11 +185,11 @@ bool convert(const char in[], char *result, Error *error) {
 				case '(': {
 					// support for a(a+b) = a*(a+b) notation
 					if(last == OPERAND) {
-						write(&ops, '*');
+						writeList(&ops, '*');
 						result[r++] = ' ';
 					}
 
-					write(&ops, in[i]);
+					writeList(&ops, in[i]);
 
 					last = NOTHING;
 
@@ -200,7 +200,7 @@ bool convert(const char in[], char *result, Error *error) {
 				case ')': {
 					double op;
 
-					while(read(&ops, &op)) {
+					while(readList(&ops, &op)) {
 						if(op == '(') {
 							break;
 						}
@@ -229,7 +229,7 @@ bool convert(const char in[], char *result, Error *error) {
 
 	// pop all remaining operators from stack and put them to output
 	double op;
-	while(read(&ops, &op)) {
+	while(readList(&ops, &op)) {
 		if(op == '(') {
 			error->code = MISSING_END_BRACKET;
 			error->position = strstr(in, "(") - in;
