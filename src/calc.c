@@ -6,7 +6,7 @@
 #include "calc.h"
 
 typedef enum {NOTHING, OPERATOR, OPERAND} Token;
-typedef enum {OP_PLUS = '+', OP_MINUS = '-', OP_MULTIPLY = '*', OP_DIVISION = '/', OP_SQRT = 0} Operator;
+typedef enum {OP_PLUS = '+', OP_MINUS = '-', OP_MULTIPLY = '*', OP_DIVISION = '/', OP_POW = '^', OP_SQRT = 0} Operator;
 
 typedef struct node {
 	double num;
@@ -103,7 +103,7 @@ bool calculate(const char *in, double *result, Error* error) {
 				start = -1;
 
 				writeList(&nums, num);
-		} else if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
+		} else if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/' || in[i] == '^') {
 			double a, b, result;
 			if(!readList(&nums, &b) || !readList(&nums, &a)) {
 				if(error) {
@@ -127,6 +127,9 @@ bool calculate(const char *in, double *result, Error* error) {
 					break;
 				case '/':
 					result = a/b;
+					break;
+				case '^':
+					result = pow(a, b);
 					break;
 			}
 
@@ -200,6 +203,10 @@ void writeOperator(Operator op, char* result, int *r) {
 			*result = '/';
 			(*r)++;
 			break;
+		case OP_POW:
+			*result = '^';
+			(*r)++;
+			break;
 		case OP_SQRT:
 			strcpy(result, "sqrt");
 			*r += strlen("sqrt");
@@ -226,6 +233,7 @@ bool convert(const char in[], char *result, Error *error) {
 				case '+':
 				case '-':
 				case '*':
+				case '^':
 				case '/': {
 					// pop operators from stack when they have higher priority then actual operator
 					while(ops && hasBiggerPriority(ops->num, in[i])) {
