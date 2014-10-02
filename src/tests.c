@@ -2,31 +2,9 @@
 #include <math.h>
 #include <string.h>
 #include "calc.h"
-
-#define GREEN "\033[22;32m"
-#define RED "\033[22;31m"
-#define CLR "\033[0m"
+#include "displayError.h"
 
 bool failedTests = 0;
-
-
-void e(Error *error, const char* str) {
-	printf("'%s'\n", str);
-	for(int i = 0; i <= error->position; i++) {
-		printf(" ");
-	}
-	printf("└────── ");
-	if(error->code == MISSING_NUMBER) {
-		printf("Missing number");
-	} else if(error->code == MISSING_END_BRACKET) {
-		printf("Missing ending bracket");
-	} else if(error->code == UNEXPECTED_CHAR) {
-		printf("Unexpected character: '%c' (%d)", str[error->position], str[error->position]);
-	} else {
-		printf("Unknown error");
-	}
-	printf("\n");
-}
 
 void testError(int test, const char in[], int code, int position, int which) {
 	char polish[255];
@@ -37,7 +15,7 @@ void testError(int test, const char in[], int code, int position, int which) {
 	if(which == 2) {
 		if(!success) {
 			printf(RED "[%2d] failed - received unexpected error %d in RPN conversion\n", test, code);
-			e(&error, polish);
+			displayError(&error, polish);
 			failedTests++;
 			return;
 		}
@@ -48,14 +26,14 @@ void testError(int test, const char in[], int code, int position, int which) {
 	if(!success) {
 		if(error.code != code) {
 			printf(RED "[%2d] failed - received error %d instead of %d\n", test, error.code, code);
-			e(&error, in);
+			displayError(&error, in);
 			failedTests++;
 			return;
 		}
 
 		if(error.position != position) {
 			printf(RED "[%2d] failed - received position %d instead of %d\n", test, error.position, position);
-			e(&error, in);
+			displayError(&error, in);
 			failedTests++;
 			return;
 		}
@@ -77,7 +55,7 @@ void test(int test, const char in[], const char polishTemplate[], double resultT
 		printf("Input:\t\t%s\n", in);
 		printf("Expected:\t%s\n", polishTemplate);
 		printf("Received:\t%s\n", polish);
-		e(&error, in);
+		displayError(&error, in);
 		printf("\n" CLR);
 		failedTests++;
 		return;
@@ -103,7 +81,7 @@ void test(int test, const char in[], const char polishTemplate[], double resultT
 		printf("\tInput:\t\t%s\n", in);
 		printf("\tConverted:\t%s\n", polish);
 
-		e(&error, polish);
+		displayError(&error, polish);
 
 
 		printf("\n" CLR);
