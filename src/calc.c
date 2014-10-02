@@ -6,6 +6,7 @@
 #include "calc.h"
 
 typedef enum {NOTHING, OPERATOR, OPERAND} Token;
+typedef enum {OP_PLUS = '+', OP_MINUS = '-', OP_MULTIPLY = '*', OP_DIVISION = '/', OP_SQRT = 0} Operator;
 
 typedef struct node {
 	double num;
@@ -130,11 +131,29 @@ bool calculate(const char *in, double *result, Error* error) {
 			}
 
 			writeList(&nums, result);
+		} else {
+			if(strncmp("sqrt", in + i, strlen("sqrt")) == 0) {
+				double a;
+				if(!readList(&nums, &a)) {
+					if(error) {
+						error->code = MISSING_NUMBER;
+						error->position = i-1;
+					}
+
+					destroyList(&nums);
+					return false;
+				}
+
+				writeList(&nums, sqrt(a));
+
+			}
 		}
 	}
 
-	*result = 0;
-	readList(&nums, result);
+	if(result) {
+		*result = 0;
+		readList(&nums, result);
+	}
 
 	if(!isEmptyList(&nums)) {
 		printf("Stack not empty!\n");
@@ -147,7 +166,49 @@ bool calculate(const char *in, double *result, Error* error) {
 	return true;
 }
 
+bool hasBiggerPriority(char op1, char op2) {
+	//if(op1 == OP_SQRT && (op2 != OP_PLUS || op2 != OP_MINUS)) {
+	//	return true;
+	//}
 
+	if(op1 == OP_DIVISION || op1 == OP_MULTIPLY) {
+		return true;
+	}
+
+	if((op1 == OP_PLUS || op1 == OP_MINUS) && (op2 == OP_PLUS || op2 == OP_MINUS)) {
+		return true;
+	}
+
+	return false;
+}
+
+void writeOperator(Operator op, char* result, int *r) {
+	switch(op) {
+		case OP_PLUS:
+			*result = '+';
+			(*r)++;
+			break;
+		case OP_MINUS:
+			*result = '-';
+			(*r)++;
+			break;
+		case OP_MULTIPLY:
+			*result = '*';
+			(*r)++;
+			break;
+		case OP_DIVISION:
+			*result = '/';
+			(*r)++;
+			break;
+		case OP_SQRT:
+			strcpy(result, "sqrt");
+			*r += strlen("sqrt");
+			break;
+		default:
+			strcpy(result, "UNKNOWN");
+			*r += strlen("UNKNOWN");
+	}
+}
 
 bool convert(const char in[], char *result, Error *error) {
 	List *ops = NULL;
@@ -167,11 +228,14 @@ bool convert(const char in[], char *result, Error *error) {
 				case '*':
 				case '/': {
 					// pop operators from stack when they have higher priority then actual operator
-					while(ops && ((ops->num == '*' || ops->num == '/') || ((in[i] == '+' || in[i] == '-') && (ops->num == '+' || ops->num == '-')))) {
+					while(ops && hasBiggerPriority(ops->num, in[i])) {
+					//while(ops && ((ops->num == '*' || ops->num == '/') || ((in[i] == '+' || in[i] == '-') && (ops->num == '+' || ops->num == '-')))) {
 						if(r > 1 && result[r - 1] != ' ') {
 							result[r++] = ' ';
 						}
-						result[r++] = ops->num;
+
+						writeOperator(ops->num, result + r, &r);
+
 
 						readList(&ops, NULL); // pop from queue
 					}
@@ -208,7 +272,7 @@ bool convert(const char in[], char *result, Error *error) {
 						}
 
 						result[r++] = ' ';
-						result[r++] = op;
+						writeOperator(op, result + r, &r);
 					}
 
 					break;
@@ -221,11 +285,17 @@ bool convert(const char in[], char *result, Error *error) {
 				}
 
 				default: {
-					error->code = UNEXPECTED_CHAR;
-					error->position = i;
+					if(strncmp("sqrt", in + i, strlen("sqrt")) == 0) {
+						i += strlen("sqrt");
 
-					destroyList(&ops);
-					return false;
+						writeList(&ops, OP_SQRT);
+					} else {
+						error->code = UNEXPECTED_CHAR;
+						error->position = i;
+
+						destroyList(&ops);
+						return false;
+					}
 				}
 			}
 		}
@@ -244,7 +314,8 @@ bool convert(const char in[], char *result, Error *error) {
 		}
 
 		result[r++] = ' ';
-		result[r++] = op;
+
+		writeOperator(op, result + r, &r);
 	}
 
 	result[r] = '\0';

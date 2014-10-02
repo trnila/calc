@@ -152,6 +152,14 @@ int main() {
 
 	test(33, "9 * 9", "9 9 *", 81);
 
+	// some sqrts
+	test(34, "sqrt(25)", "25 sqrt", 5);
+	test(35, "sqrt(25)+1", "25 sqrt 1 +", 6);
+	test(36, "sqrt(100-36)", "100 36 - sqrt", 8);
+	test(37, "sqrt(2 * 50 - 2 * 18)", "2 50 * 2 18 * - sqrt", 8);
+	test(38, "sqrt(2 * 50 - 2 * 18) + 5 * 2", "2 50 * 2 18 * - sqrt 5 2 * +", 18);
+
+
 	printf("\n");
 	if(failedTests > 0) {
 		printf(RED "%d test%s failed\n" CLR, failedTests, failedTests > 1 ? "s" : "");
