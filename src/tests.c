@@ -6,7 +6,7 @@
 
 bool failedTests = 0;
 
-void testError(int test, const char in[], int code, int position, int which) {
+void testError(int test, const char in[], int code, size_t position, int which) {
 	char polish[255];
 	Error error;
 	int success;
@@ -32,7 +32,7 @@ void testError(int test, const char in[], int code, int position, int which) {
 		}
 
 		if(error.position != position) {
-			printf(RED "[%2d] failed - received position %d instead of %d\n", test, error.position, position);
+			printf(RED "[%2d] failed - received position %zu instead of %zu\n", test, error.position, position);
 			displayError(&error, in);
 			failedTests++;
 			return;

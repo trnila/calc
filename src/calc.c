@@ -57,7 +57,6 @@ bool isEmptyList(List **list) {
 
 double strToInt(const char* str, size_t len) {
 	double result = 0;
-	bool afterPoint = false;
 
 	// find dotPosition or last character
 	int dotPosition;
@@ -242,4 +241,6 @@ bool convert(const char in[], char *result, Error *error) {
 	}
 
 	result[r] = '\0';
+
+	return true;
 }
