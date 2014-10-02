@@ -110,6 +110,7 @@ bool calculate(const char *in, double *result, Error* error) {
 					error->position = i-1;
 				}
 
+				destroyList(&nums);
 				return false;
 			}
 
@@ -138,6 +139,8 @@ bool calculate(const char *in, double *result, Error* error) {
 	if(!isEmptyList(&nums)) {
 		printf("Stack not empty!\n");
 		printList(&nums);
+
+		destroyList(&nums);
 		return false;
 	}
 
@@ -220,6 +223,8 @@ bool convert(const char in[], char *result, Error *error) {
 				default: {
 					error->code = UNEXPECTED_CHAR;
 					error->position = i;
+
+					destroyList(&ops);
 					return false;
 				}
 			}
@@ -232,6 +237,8 @@ bool convert(const char in[], char *result, Error *error) {
 		if(op == '(') {
 			error->code = MISSING_END_BRACKET;
 			error->position = strstr(in, "(") - in;
+
+			destroyList(&ops);
 
 			return false;
 		}
