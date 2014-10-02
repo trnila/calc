@@ -150,6 +150,8 @@ int main() {
 	test(31, "1 / 2", "1 2 /", 0.5);
 	test(32, "1 / 3", "1 3 /", 0.333333);
 
+	test(33, "9 * 9", "9 9 *", 81);
+
 	printf("\n");
 	if(failedTests > 0) {
 		printf(RED "%d test%s failed\n" CLR, failedTests, failedTests > 1 ? "s" : "");

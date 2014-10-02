@@ -83,7 +83,7 @@ double strToInt(const char* str, size_t len) {
 }
 
 bool isNumber(char in) {
-	return in >= '0' && in < '9' || in == '.';
+	return (in >= '0' && in <= '9') || in == '.';
 }
 
 bool calculate(const char *in, double *result, Error* error) {
