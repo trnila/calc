@@ -12,11 +12,11 @@ typedef struct {
 } Error;
 
 typedef struct node {
-	int num;
+	double num;
 	struct node *prev;
 } List;
 
-void write(List** list, int num) {
+void write(List** list, double num) {
 	List *dst = (List*) malloc(sizeof(List));
 	dst->num = num;
 	dst->prev = *list;
@@ -24,7 +24,7 @@ void write(List** list, int num) {
 	*list = dst;
 }
 
-bool read(List** list, int *result) {
+bool read(List** list, double *result) {
 	if(*list) {
 		List *dst = *list;
 
@@ -45,7 +45,7 @@ bool read(List** list, int *result) {
 void print(List **list) {
 	List *l = *list;
 	while(l) {
-		printf("%d ", l->num);
+		printf("%f ", l->num);
 		l = l->prev;
 	}
 	printf("\n");
@@ -59,10 +59,23 @@ bool isEmpty(List **list) {
 	return *list == NULL;
 }
 
-int strToInt(const char* str, size_t len) {
-	int result = 0;
+double strToInt(const char* str, size_t len) {
+	double result = 0;
+	bool afterPoint = false;
+
+	// find dotPosition or last character
+	int dotPosition;
+	for(dotPosition = 0; dotPosition < len && str[dotPosition] != '.'; dotPosition++) {}
+
 	for(size_t i = str[0] == '-'; i < len; i++) {
-		result += (str[i] - '0') * pow(10, len - i - 1);
+		int number = str[i] - '0';
+		if(number >= 0 && number <= 9) {
+			if(i < dotPosition) {
+				result += number * pow(10, dotPosition - i - 1);
+			} else {
+				result += number * pow(10, (int) -(i - dotPosition));
+			}
+		}
 	}
 
 	// if first character is minus, negate number
@@ -74,10 +87,10 @@ int strToInt(const char* str, size_t len) {
 }
 
 bool isNumber(char in) {
-	return in >= '0' && in < '9';
+	return in >= '0' && in < '9' || in == '.';
 }
 
-bool calculate(const char *in, int *result, Error* error) {
+bool calculate(const char *in, double *result, Error* error) {
 	List* nums = NULL;
 
 	int start = -1;
@@ -90,12 +103,12 @@ bool calculate(const char *in, int *result, Error* error) {
 				start = i;
 			}
 		} else if(start >= 0) {
-				int num = strToInt(in + start, i - start);
+				double num = strToInt(in + start, i - start);
 				start = -1;
 
 				write(&nums, num);
 		} else if(in[i] == '+' || in[i] == '-' || in[i] == '*' || in[i] == '/') {
-			int a, b, result;
+			double a, b, result;
 			if(!read(&nums, &b) || !read(&nums, &a)) {
 				if(error) {
 					error->code = MISSING_NUMBER;
@@ -145,7 +158,7 @@ bool convert(const char in[], char *result, Error *error) {
 
 	for(size_t i = 0, size = strlen(in); i < size; i++) {
 		// if is number, push it to output
-		if(isNumber(in[i]) || (last == NOTHING && in[i] == '-')) {
+		if(isNumber(in[i]) || in[i] == '.' || (last == NOTHING && in[i] == '-')) {
 			result[r++] = in[i];
 			last = OPERAND;
 		} else {
@@ -189,7 +202,7 @@ bool convert(const char in[], char *result, Error *error) {
 
 				// pop until '(' is found in stack
 				case ')': {
-					int op;
+					double op;
 
 					while(read(&ops, &op)) {
 						if(op == '(') {
@@ -219,7 +232,7 @@ bool convert(const char in[], char *result, Error *error) {
 	}
 
 	// pop all remaining operators from stack and put them to output
-	int op;
+	double op;
 	while(read(&ops, &op)) {
 		if(op == '(') {
 			error->code = MISSING_END_BRACKET;
@@ -299,7 +312,7 @@ void testError(int test, const char in[], int code, int position, int which) {
 	}
 }
 
-void test(int test, const char in[], const char polishTemplate[], int resultTemplate) {
+void test(int test, const char in[], const char polishTemplate[], double resultTemplate) {
 	char polish[255];
 	Error error;
 
@@ -327,7 +340,7 @@ void test(int test, const char in[], const char polishTemplate[], int resultTemp
 		return;
 	}
 
-	int result;
+	double result;
 
 	// check if error
 	if(!calculate(polish, &result, &error)) {
@@ -344,19 +357,19 @@ void test(int test, const char in[], const char polishTemplate[], int resultTemp
 		return;
 	}
 
-	if(result != resultTemplate) {
+	if(fabs(result - resultTemplate) > 0.000001) {
 		printf(RED "[%2d]\n", test);
 		printf("\tInput:\t\t%s\n", in);
 		printf("\tConverted:\t%s\n", polish);
-		printf("\tExpected:\t%d\n", resultTemplate);
-		printf("\tReceived:\t%d\n", result);
+		printf("\tExpected:\t%f\n", resultTemplate);
+		printf("\tReceived:\t%f\n", result);
 		printf("\n" CLR);
 
 		failedTests++;
 		return;
 	}
 
-	printf(GREEN "[%2d] Passed '%s' = '%s' = %d\n" CLR, test, in, polish, resultTemplate);
+	printf(GREEN "[%2d] Passed '%s' = '%s' = %f\n" CLR, test, in, polish, resultTemplate);
 }
 
 int main() {
@@ -369,8 +382,8 @@ int main() {
 	test(7, "3 - 4 * 5", "3 4 5 * -", -17);
 	test(8, "40 / 4 + 5", "40 4 / 5 +", 15);
 	test(9, "(3 - 4) * 5", "3 4 - 5 *", -5);
-	test(10, "(4 * 6 + 2) + ((45 + 2) / 21)", "4 6 * 2 + 45 2 + 21 / +", 28);
-	test(11, "(4*6+2)+((45+2)/21)", "4 6 * 2 + 45 2 + 21 / +", 28);
+	test(10, "(4 * 6 + 2) + ((45 + 2) / 21)", "4 6 * 2 + 45 2 + 21 / +", 28.238095);
+	test(11, "(4*6+2)+((45+2)/21)", "4 6 * 2 + 45 2 + 21 / +", 28.238095);
 
 	// a(b+c) notation
 	test(12, "2 + 3(12+4)", "2 3 12 4 + * +", 50);
@@ -397,6 +410,12 @@ int main() {
 	testError(26, "4(7", MISSING_END_BRACKET, 1, 1);
 	testError(27, "4(7+", MISSING_END_BRACKET, 1, 1);
 	testError(28, "4 + 2 - 4(7+", MISSING_END_BRACKET, 9, 1);
+
+	// test numbers with floating point
+	test(29, "1.5 * 2.0", "1.5 2.0 *", 3);
+	test(30, "1.5 * 2", "1.5 2 *", 3);
+	test(31, "1 / 2", "1 2 /", 0.5);
+	test(32, "1 / 3", "1 3 /", 0.333333);
 
 	printf("\n");
 	if(failedTests > 0) {
